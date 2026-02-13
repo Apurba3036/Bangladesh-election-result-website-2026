@@ -1,16 +1,64 @@
-# React + Vite
+# 🗳️ Bangladesh Election Portal 2026
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A premium, high-performance web application designed to provide real-time election results, interactive mapping, and data visualization for the 2026 Bangladesh General Elections.
 
-Currently, two official plugins are available:
+![Project Preview](./image.png)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## ✨ Core Features
 
-## React Compiler
+### 📡 Live Result Synchronization
+- **Live-First Engine**: Prioritizes real-time data from `geotasker.ai`.
+- **Intelligent Fallback**: Seamlessly switches to local JSON snapshots if the live API is unreachable, ensuring zero downtime.
+- **Visual Sync Status**: Real-time status badge (Live/Fallback/Syncing) with detailed diagnostic tooltips.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### 🗺️ Interactive Election Map
+- **MapLibre Engine**: High-performance vector map rendering.
+- **District Analytics**: Click any district to see specific winners, vote counts, and counting status.
+- **Advanced Filtering**: Filter the entire ecosystem by political party or toggle "Contested/Swing" seats.
+- **Dynamic Search**: Instantly fly to and highlight any district using the integrated search bar.
 
-## Expanding the ESLint configuration
+### 📊 Real-Time Analytics Dashboard
+- **Chart.js Integration**: Beautifully animated Pie and Bar charts for seat distribution and performance analysis.
+- **Live Result Ticker**: A professional, auto-scrolling news ticker showing the latest declared results as they arrive.
+- **Status Progress**: Visual tracking of declaration progress (Total Seats vs. Declared).
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### 🎨 Premium User Experience
+- **Adaptive Dark Mode**: Fully refined Dark and Light themes with fluid transitions.
+- **Snapshot Sharing**: Professional text-summary generator that copies the latest standings directly to your clipboard.
+- **Mobile First**: Fully responsive design optimized for smartphones, tablets, and desktops.
+
+---
+
+## 🚀 Technical Stack
+
+- **Frontend**: React 19 + Vite
+- **Styling**: Tailwind CSS v3 (Premium Glassmorphism & Animations)
+- **Mapping**: MapLibre GL + GeoJSON
+- **Charts**: Chart.js + react-chartjs-2
+- **Icons**: Lucide React
+- **Data**: REST API + Local JSON Fallback
+
+---
+
+## 🛠️ Installation & Setup
+
+1. **Clone & Install**
+   ```bash
+   npm install
+   ```
+
+2. **Development Mode**
+   ```bash
+   npm run dev
+   ```
+
+3. **Production Build**
+   ```bash
+   npm run build
+   ```
+
+---
+
+
+
+**🌐 Powered by Geotasker AI Data Engine**
