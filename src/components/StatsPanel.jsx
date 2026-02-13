@@ -15,7 +15,7 @@ const PARTY_COLORS = {
     'Pending': '#94a3b8'
 };
 
-const StatsPanel = ({ summary }) => {
+const StatsPanel = ({ summary, activeFilter, onFilterChange }) => {
     const { theme } = useTheme();
 
     if (!summary) return null;
@@ -51,6 +51,13 @@ const StatsPanel = ({ summary }) => {
                 boxPadding: 6,
                 usePointStyle: true
             }
+        },
+        onClick: (event, elements) => {
+            if (elements.length > 0) {
+                const index = elements[0].index;
+                const party = pieData.labels[index];
+                onFilterChange(activeFilter === party ? 'All' : party);
+            }
         }
     };
 
@@ -77,6 +84,13 @@ const StatsPanel = ({ summary }) => {
                 titleColor: isDark ? '#fff' : '#000',
                 bodyColor: isDark ? '#fff' : '#000',
                 padding: 10
+            }
+        },
+        onClick: (event, elements) => {
+            if (elements.length > 0) {
+                const index = elements[0].index;
+                const party = barData.labels[index];
+                onFilterChange(activeFilter === party ? 'All' : party);
             }
         },
         scales: {
@@ -106,13 +120,20 @@ const StatsPanel = ({ summary }) => {
                 </div>
                 <div className="grid grid-cols-2 gap-2 mt-6">
                     {sortedParties.map(([name, value]) => (
-                        <div key={name} className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800">
+                        <button
+                            key={name}
+                            onClick={() => onFilterChange(activeFilter === name ? 'All' : name)}
+                            className={`flex items-center justify-between p-2.5 rounded-xl border transition-all ${activeFilter === name
+                                    ? 'bg-blue-600/10 border-blue-600/50 ring-2 ring-blue-500/20'
+                                    : 'bg-slate-50 dark:bg-slate-900/50 border-slate-100 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+                                }`}
+                        >
                             <div className="flex items-center gap-2">
                                 <div className="w-2 h-2 rounded-full" style={{ backgroundColor: PARTY_COLORS[name] || PARTY_COLORS['Other'] }} />
-                                <span className="text-xs font-bold">{name}</span>
+                                <span className={`text-xs font-bold ${activeFilter === name ? 'text-blue-700 dark:text-blue-400' : ''}`}>{name}</span>
                             </div>
                             <span className="text-xs font-black opacity-60">{value}</span>
-                        </div>
+                        </button>
                     ))}
                 </div>
             </section>

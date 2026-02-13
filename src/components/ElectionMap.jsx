@@ -17,13 +17,12 @@ const PARTY_COLORS = {
 
 import { getElectionData } from '../utils/electionApi';
 
-function ElectionMap() {
+function ElectionMap({ data, selection, partyFilter, showContestedOnly }) {
     const { theme } = useTheme();
     const mapContainer = useRef(null);
     const map = useRef(null);
-    const [electionData, setElectionData] = useState(null);
-    const [isLoadingData, setIsLoadingData] = useState(true);
     const [error, setError] = useState(null);
+    const popupRef = useRef(null);
 
     // Map base style definition (Dynamic based on theme)
     const getMapStyle = (currentTheme) => ({
@@ -60,7 +59,7 @@ function ElectionMap() {
         if (!m.getSource('districts')) {
             m.addSource('districts', {
                 type: 'geojson',
-                data: electionData?.geojson || { type: 'FeatureCollection', features: [] },
+                data: data?.geojson || { type: 'FeatureCollection', features: [] },
                 generateId: true
             });
         }
@@ -85,10 +84,40 @@ function ElectionMap() {
                         'case',
                         ['boolean', ['feature-state', 'hover'], false],
                         0.9,
-                        0.6
+                        partyFilter ? 0.9 : 0.6 // Slightly higher opacity when filtering
                     ]
                 }
             });
+        }
+
+        // Apply Party Filtering (NEW)
+        if (m.getLayer('districts-fill')) {
+            let filter = null;
+            if (showContestedOnly) {
+                filter = ['==', ['get', 'status'], 'counting'];
+            } else if (partyFilter && partyFilter !== 'All') {
+                filter = ['==', ['get', 'winner_party'], partyFilter];
+            }
+
+            // Dim others by reducing opacity if a filter is active
+            m.setPaintProperty('districts-fill', 'fill-opacity',
+                filter ? [
+                    'case',
+                    filter, 0.95,
+                    0.05 // HEAVILY dim others
+                ] : [
+                    'case',
+                    ['boolean', ['feature-state', 'hover'], false], 0.9,
+                    0.6
+                ]
+            );
+
+            // Dim text labels too if they don't match
+            if (m.getLayer('districts-labels')) {
+                m.setPaintProperty('districts-labels', 'text-opacity',
+                    filter ? ['case', filter, 1, 0.1] : 1
+                );
+            }
         }
 
         if (!m.getLayer('districts-line')) {
@@ -147,19 +176,8 @@ function ElectionMap() {
             m.resize();
             setupMapLayers(m);
 
-            getElectionData()
-                .then(data => {
-                    setElectionData(data);
-                    setIsLoadingData(false);
-                    if (m.getSource('districts')) {
-                        m.getSource('districts').setData(data.geojson);
-                        fitMapToData(m, data.geojson);
-                    }
-                })
-                .catch(err => {
-                    setError(err.message);
-                    setIsLoadingData(false);
-                });
+            // setupMapLayers handles initial empty data
+            setupMapLayers(m);
 
             // Interactivity
             let hoveredId = null;
@@ -179,32 +197,110 @@ function ElectionMap() {
             });
 
             m.on('click', 'districts-fill', (e) => {
-                const props = e.features[0].properties;
-                new maplibregl.Popup({ className: 'custom-popup', closeButton: false })
-                    .setLngLat(e.lngLat)
-                    .setHTML(`
-                        <div class="px-4 py-3 bg-white dark:bg-slate-900 border-none rounded-xl">
-                            <h4 class="text-sm font-bold text-blue-600 dark:text-blue-400 mb-1">${props.region_name || 'District'}</h4>
-                            <p class="text-xs font-semibold text-slate-700 dark:text-slate-200">Winner: ${props.winner_party || 'Pending'}</p>
-                            <p class="text-[10px] text-slate-500 mt-1 uppercase">Status: ${props.status || 'Counting'}</p>
-                        </div>
-                    `)
-                    .addTo(m);
+                showDistrictPopup(m, e.features[0].properties, e.lngLat);
             });
         });
 
-        const fitMapToData = (mInst, geojson) => {
-            const bounds = new maplibregl.LngLatBounds();
-            geojson.features.forEach(f => {
-                const type = f.geometry?.type;
-                if (type === 'Polygon') f.geometry.coordinates[0].forEach(c => bounds.extend(c));
-                else if (type === 'MultiPolygon') f.geometry.coordinates.forEach(p => p[0].forEach(c => bounds.extend(c)));
-            });
-            if (!bounds.isEmpty()) mInst.fitBounds(bounds, { padding: 50, duration: 1500 });
-        };
-
         return () => m.remove();
     }, []);
+
+    // Handle Selection (Search/Ticker)
+    useEffect(() => {
+        if (map.current && selection) {
+            const { feature } = selection;
+            if (!feature.geometry) return;
+
+            const centroid = getCentroid(feature.geometry);
+
+            map.current.flyTo({
+                center: centroid,
+                zoom: 10,
+                speed: 1.2,
+                curve: 1.4,
+                essential: true
+            });
+
+            showDistrictPopup(map.current, feature.properties, centroid);
+        }
+    }, [selection]);
+
+    // Handle Data Sync (Fix for empty map)
+    useEffect(() => {
+        if (map.current && data?.geojson) {
+            const m = map.current;
+            const updateSource = () => {
+                const source = m.getSource('districts');
+                if (source) {
+                    source.setData(data.geojson);
+                    if (!m._fitted) {
+                        fitMapToData(m, data.geojson);
+                        m._fitted = true;
+                    }
+                } else {
+                    setupMapLayers(m);
+                }
+            };
+
+            if (m.isStyleLoaded()) {
+                updateSource();
+            } else {
+                m.once('styledata', updateSource);
+            }
+        }
+    }, [data]);
+
+    // Handle Filter Sync
+    useEffect(() => {
+        if (map.current && map.current.isStyleLoaded()) {
+            setupMapLayers(map.current);
+        }
+    }, [partyFilter, showContestedOnly]);
+
+    const showDistrictPopup = (m, props, lngLat) => {
+        if (popupRef.current) popupRef.current.remove();
+
+        popupRef.current = new maplibregl.Popup({ className: 'custom-popup', closeButton: false })
+            .setLngLat(lngLat)
+            .setHTML(`
+                <div class="px-4 py-3 bg-white dark:bg-slate-900 border-none rounded-xl">
+                    <h4 class="text-sm font-bold text-blue-600 dark:text-blue-400 mb-1">${props.region_name || 'District'}</h4>
+                    <p class="text-xs font-semibold text-slate-700 dark:text-slate-200">Winner: ${props.winner_party || 'Pending'}</p>
+                    <p class="text-[10px] text-slate-500 mt-1 uppercase">Status: ${props.status || 'Counting'}</p>
+                </div>
+            `)
+            .addTo(m);
+    };
+
+    const getCentroid = (geometry) => {
+        const { type, coordinates } = geometry;
+        let minX = 180, minY = 90, maxX = -180, maxY = -90;
+
+        const extendBounds = (lng, lat) => {
+            minX = Math.min(minX, lng); maxX = Math.max(maxX, lng);
+            minY = Math.min(minY, lat); maxY = Math.max(maxY, lat);
+        };
+
+        const processRing = (ring) => ring.forEach(([lng, lat]) => extendBounds(lng, lat));
+        const processPolygon = (poly) => poly.forEach(processRing);
+
+        if (type === 'Polygon') {
+            processPolygon(coordinates);
+        } else if (type === 'MultiPolygon') {
+            coordinates.forEach(processPolygon);
+        }
+
+        return [(minX + maxX) / 2, (minY + maxY) / 2];
+    };
+
+    const fitMapToData = (mInst, geojson) => {
+        const bounds = new maplibregl.LngLatBounds();
+        geojson.features.forEach(f => {
+            const type = f.geometry?.type;
+            if (type === 'Polygon') f.geometry.coordinates[0].forEach(c => bounds.extend(c));
+            else if (type === 'MultiPolygon') f.geometry.coordinates.forEach(p => p[0].forEach(c => bounds.extend(c)));
+        });
+        if (!bounds.isEmpty()) mInst.fitBounds(bounds, { padding: 50, duration: 1500 });
+    };
 
     return (
         <div className="relative w-full h-full min-h-[300px] lg:min-h-full overflow-hidden">
@@ -212,31 +308,15 @@ function ElectionMap() {
 
             {/* In-Map UI Overlays */}
             <div className="absolute top-6 left-6 z-10 hidden sm:block">
-                <Legend partySeats={electionData?.summary?.party_seats} />
+                <Legend partySeats={data?.summary?.party_seats} />
             </div>
 
             {/* Mobile Loading / Status Overlay */}
-            {isLoadingData && !error && (
+            {!data && (
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50">
                     <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl px-6 py-4 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl flex items-center gap-4 animate-in zoom-in duration-300">
                         <Loader2 className="animate-spin text-blue-600" size={24} />
-                        <span className="text-sm font-black tracking-tight uppercase">Initializing Map Engine...</span>
-                    </div>
-                </div>
-            )}
-
-            {error && (
-                <div className="absolute inset-0 z-50 bg-slate-100/80 dark:bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-6">
-                    <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 text-center max-w-sm">
-                        <RefreshCw className="mx-auto mb-4 text-rose-500" size={40} />
-                        <h3 className="text-lg font-bold mb-2">Sync Connection Lost</h3>
-                        <p className="text-sm text-slate-500 mb-6">{error}</p>
-                        <button
-                            onClick={() => window.location.reload()}
-                            className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition-all shadow-lg hover:ring-4 hover:ring-blue-500/20"
-                        >
-                            Retry Sync
-                        </button>
+                        <span className="text-sm font-black tracking-tight uppercase tracking-widest text-[#006a4e]">Synchronizing...</span>
                     </div>
                 </div>
             )}

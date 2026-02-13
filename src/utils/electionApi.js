@@ -17,23 +17,19 @@ export const getElectionData = () => {
     // Use absolute URL to bypass proxy issues on Vercel/Netlify
     const LIVE_URL = 'https://geotasker.ai/api/election/live';
 
-    fetchPromise = fetch(LIVE_URL)
+    const fetchLive = (url) => fetch(url, { cache: 'no-store' })
         .then(async (res) => {
-            if (!res.ok) throw new Error(`Live API failure: ${res.status}`);
+            if (!res.ok) throw new Error(`Status ${res.status}`);
             const data = await res.json();
-            console.log('✅ Live data synchronized.');
-            return data;
-        })
+            return { ...data, _source: 'live' };
+        });
+
+    fetchPromise = fetchLive(LIVE_URL)
         .catch((err) => {
-            console.warn('⚠️ Live sync failed, attempting fallback to local JSON...', err.message);
-            // Fallback to local snapshot
+            console.warn('⚠️ Direct live sync failed (likely CORS or Offline), falling back to local snapshot.', err.message);
             return fetch('/fallback-data.json')
-                .then(async (res) => {
-                    if (!res.ok) throw new Error('Fallback data also unavailable.');
-                    const data = await res.json();
-                    console.log('📊 Loaded from fallback local snapshot.');
-                    return data;
-                });
+                .then(res => res.ok ? res.json() : Promise.reject('Local data missing'))
+                .then(data => ({ ...data, _source: 'fallback' }));
         })
         .then((data) => {
             cachedData = data;
