@@ -23,8 +23,8 @@ function AppContent() {
         <div className="max-w-[1920px] mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/30">
-                <span className="text-white font-black text-xl italic mt-[-1px]">B</span>
+              <div className="w-10 h-10 rounded-xl overflow-hidden shadow-lg shadow-blue-500/20">
+                <img src="/electionlogo.png" alt="Logo" className="w-full h-full object-cover" />
               </div>
               <div className="hidden sm:block">
                 <h1 className="text-base font-black tracking-tight leading-none uppercase">Bangladesh</h1>
