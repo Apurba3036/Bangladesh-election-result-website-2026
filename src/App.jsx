@@ -5,27 +5,12 @@ import SummaryPanel from './components/SummaryPanel';
 import { ThemeProvider, useTheme } from './components/ThemeContext';
 import { Sun, Moon, BarChart3, Map as MapIcon, Share2, Info } from 'lucide-react';
 
-// Shared fetcher logic matching ElectionMap.jsx
-let cachedData = null;
-let fetchPromise = null;
-
-const getElectionData = () => {
-  if (cachedData) return Promise.resolve(cachedData);
-  if (fetchPromise) return fetchPromise;
-
-  fetchPromise = fetch('/api/election/live')
-    .then(res => res.json())
-    .then(data => {
-      cachedData = data;
-      return data;
-    });
-  return fetchPromise;
-};
+import { getElectionData } from './utils/electionApi';
 
 function AppContent() {
   const { theme, toggleTheme } = useTheme();
   const [view, setView] = useState('map');
-  const [data, setData] = useState(cachedData);
+  const [data, setData] = useState(null);
 
   useEffect(() => {
     getElectionData().then(setData).catch(console.error);

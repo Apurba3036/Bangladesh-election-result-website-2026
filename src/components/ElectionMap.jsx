@@ -15,36 +15,14 @@ const PARTY_COLORS = {
     'Pending': '#94a3b8'
 };
 
-// --- SINGLETON FETCHER ---
-let cachedData = null;
-let fetchPromise = null;
-
-const getElectionData = () => {
-    if (cachedData) return Promise.resolve(cachedData);
-    if (fetchPromise) return fetchPromise;
-
-    fetchPromise = fetch('/api/election/live')
-        .then(res => {
-            if (!res.ok) throw new Error(`Server Error: ${res.status}`);
-            return res.json();
-        })
-        .then(data => {
-            cachedData = data;
-            return data;
-        })
-        .catch(err => {
-            fetchPromise = null;
-            throw err;
-        });
-    return fetchPromise;
-};
+import { getElectionData } from '../utils/electionApi';
 
 function ElectionMap() {
     const { theme } = useTheme();
     const mapContainer = useRef(null);
     const map = useRef(null);
-    const [electionData, setElectionData] = useState(cachedData);
-    const [isLoadingData, setIsLoadingData] = useState(!cachedData);
+    const [electionData, setElectionData] = useState(null);
+    const [isLoadingData, setIsLoadingData] = useState(true);
     const [error, setError] = useState(null);
 
     // Map base style definition (Dynamic based on theme)
