@@ -14,7 +14,8 @@ export const getElectionData = () => {
     // Return existing fetch promise if one is in flight (Avoid duplicate requests)
     if (fetchPromise) return fetchPromise;
 
-    // Use relative URL to use the Vite proxy (fixes CORS issues in development)
+    // Use relative URL to use the Proxy (Vite in dev, Vercel/Netlify in prod)
+    // This is the most reliable way to bypass CORS on both platforms
     const LIVE_URL = '/api/election/live';
 
     const fetchLive = (url) => fetch(url, { cache: 'no-store' })

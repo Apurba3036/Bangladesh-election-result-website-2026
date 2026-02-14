@@ -1,0 +1,8 @@
+{
+    "rewrites": [
+        {
+            "source": "/api/(.*)",
+            "destination": "https://geotasker.ai/api/$1"
+        }
+    ]
+}
