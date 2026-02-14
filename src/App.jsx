@@ -39,6 +39,13 @@ function AppContent() {
 
   useEffect(() => {
     loadData();
+
+    // Auto-refresh data every 30 seconds to keep results live
+    const interval = setInterval(() => {
+      loadData(true);
+    }, 30000);
+
+    return () => clearInterval(interval);
   }, []);
 
   return (
@@ -62,12 +69,12 @@ function AppContent() {
                   onClick={() => loadData(true)}
                   title={errorDetail || (dataSource === 'live' ? 'Connected to live stream' : 'Using local fallback')}
                   className={`flex items-center gap-1.5 px-3 py-1 rounded-full border cursor-pointer hover:shadow-md transition-all ${dataSource === 'live'
-                      ? 'bg-green-500/10 border-green-500/20 text-green-600 dark:text-green-400'
-                      : dataSource === 'fallback'
-                        ? 'bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400'
-                        : dataSource === 'error'
-                          ? 'bg-red-500/10 border-red-500/20 text-red-600 dark:text-red-400'
-                          : 'bg-slate-500/10 border-slate-500/20 text-slate-500'
+                    ? 'bg-green-500/10 border-green-500/20 text-green-600 dark:text-green-400'
+                    : dataSource === 'fallback'
+                      ? 'bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400'
+                      : dataSource === 'error'
+                        ? 'bg-red-500/10 border-red-500/20 text-red-600 dark:text-red-400'
+                        : 'bg-slate-500/10 border-slate-500/20 text-slate-500'
                     }`}
                 >
                   {dataSource === 'syncing' ? (

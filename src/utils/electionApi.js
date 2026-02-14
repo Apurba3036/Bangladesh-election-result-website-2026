@@ -14,8 +14,8 @@ export const getElectionData = () => {
     // Return existing fetch promise if one is in flight (Avoid duplicate requests)
     if (fetchPromise) return fetchPromise;
 
-    // Use absolute URL to bypass proxy issues on Vercel/Netlify
-    const LIVE_URL = 'https://geotasker.ai/api/election/live';
+    // Use relative URL to use the Vite proxy (fixes CORS issues in development)
+    const LIVE_URL = '/api/election/live';
 
     const fetchLive = (url) => fetch(url, { cache: 'no-store' })
         .then(async (res) => {
